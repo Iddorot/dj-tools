@@ -1,7 +1,7 @@
 # Mixxx Tracklist Generator
 
 ## Overview
-This utility exports a tracklist from the [Mixxx](https://mixxx.org/) open-source DJ software's database. It retrieves the tracks from a playlist based on a specified date and generates a formatted text file.
+This utility exports a tracklist from the [Mixxx](https://mixxx.org/) open-source DJ software's database. It retrieves the tracks from the history playlist based on a specified date and generates a formatted text file.
 
 ## Features
 - Queries the Mixxx database for a playlist created on a specific date.
