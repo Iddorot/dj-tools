@@ -1,16 +1,34 @@
 import sqlite3
 import os
+import requests
 from datetime import datetime
 
+MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/artist/"
+
+def search_artist_online(track_title):
+    """Search for an artist name using MusicBrainz API."""
+    params = {
+        "query": track_title,
+        "fmt": "json",
+        "limit": 1
+    }
+    try:
+        response = requests.get(MUSICBRAINZ_API_URL + "?", params=params, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        if "artists" in data and len(data["artists"]) > 0:
+            return data["artists"][0]["name"]
+    except requests.RequestException:
+        return None
+    return None
+
 def get_playlist_id(cursor, date):
-    """Fetches the playlist ID for a given date."""
     query = "SELECT id FROM playlists WHERE hidden = 2 AND name = ?"
     cursor.execute(query, (date,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 def get_tracklist(cursor, playlist_id):
-    """Retrieves the tracklist for a given playlist ID."""
     query = """
     SELECT COALESCE(NULLIF(l.artist, ''), 'Unknown Artist'), 
            COALESCE(NULLIF(l.title, ''), 'Unknown') 
@@ -23,18 +41,18 @@ def get_tracklist(cursor, playlist_id):
     return cursor.fetchall()
 
 def export_tracklist(date, tracks):
-    """Exports the tracklist to a text file."""
     filename = f"tracklist_{date}.txt"
     with open(filename, "w", encoding="utf-8") as f:
         f.write("Tracklist:\n")
         for artist, title in tracks:
+            if artist == "Unknown Artist":
+                artist = search_artist_online(title) or "Unknown Artist"
             artist = artist.replace("_", " ") if artist.isupper() else artist.title().replace("_", " ")
             title = title.replace("_", " ") if title.isupper() else title.title().replace("_", " ")
             f.write(f"{artist} - {title}\n")
     print(f"Tracklist saved as {filename}")
 
 def main():
-    """Main function to handle user input and generate tracklist export."""
     default_db_path = os.path.expandvars(r"%USERPROFILE%\Local Settings\Application Data\Mixxx\mixxxdb.sqlite")
     today_date = datetime.today().strftime('%Y-%m-%d')
 
