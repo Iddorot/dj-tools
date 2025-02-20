@@ -1,8 +1,28 @@
 import sqlite3
-import os
+import os, sys
 import requests
 from datetime import datetime
+from termcolor import colored
+import time
 
+DJ_ICON = """
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⢄⣀⠔⣋⣉⣝⢦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⡴⠋⢉⣬⠮⡞⠁⠀⠉⢲⢿⡿⡆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠜⡵⢫⢤⣇⠀⡇⠀⠀⠀⢸⠀⣿⡌⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⡏⢲⠙⡛⢧⣀⢀⣠⠾⣗⡉⡎⠑⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⡸⢠⡏⡜⣁⡤⠏⠉⠧⣄⡹⠘⠷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢠⠃⢰⡵⠊⠁⠀⠀⠀⠀⠀⠈⠳⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢸⡀⠀⣀⡠⡆⠀⠀⠀⠀⠀⣆⠀⠹⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠉⠉⠁⠀⡇⠀⠀⠀⠀⠀⡏⢣⡀⠘⣄⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⢸⠀⠙⢤⡈⢦⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⢠⠖⣒⣶⠖⠒⠒⠒⠲⠷⣒⠒⠒⠒⠒⣺⣶⠖⠒⠓⢤⣹⠶⣒⠲⡄⠀⠀
+⠀⢠⠏⣞⣟⠉⠀⣖⠒⣲⠀⠀⠈⣳⠀⠀⡎⡞⠉⠀⣖⢒⣢⠀⠀⠈⡇⠹⡄⠀
+⢠⠏⠀⠘⠪⢅⣀⣀⠉⣀⣀⡠⠔⠁⠀⠀⠙⠮⣇⣀⣀⠉⣀⣀⡤⠖⠁⠀⠹⡄
+⡟⠒⠒⠒⠒⠒⠒⠓⠛⠚⠒⠒⠒⠒⠒⠒⠒⠒⠒⠒⠚⠛⠛⠒⠒⠒⠒⠒⠒⢻
+⣇⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣸
+"""
+
+# MusicBrainz API URL
 MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/artist/"
 
 
@@ -58,7 +78,18 @@ def export_tracklist(date, tracks):
                 else title.title().replace("_", " ")
             )
             f.write(f"{artist} - {title}\n")
-    print(f"Tracklist saved as {filename}")
+    print_wavy_text(f"🎶 Tracklist saved as {filename} 🎶")
+
+
+def print_wavy_text(text, delay=0.02):
+    """Prints text in wavy colors by cycling through a list of colors."""
+    colors = ["red", "yellow", "green", "blue", "magenta", "cyan"]
+    for i, char in enumerate(text):
+        color = colors[i % len(colors)]
+        sys.stdout.write(colored(char, color))
+        sys.stdout.flush()
+        time.sleep(delay)
+    print()
 
 
 def main():
@@ -67,20 +98,30 @@ def main():
     )
     today_date = datetime.today().strftime("%Y-%m-%d")
 
+    print(colored(DJ_ICON, "cyan"))
+    print_wavy_text("Welcome to the DJ Tracklist Exporter! 🎧")
+    print(colored("=====================================", "yellow"))
+
     db_path = (
         input(
-            f"Enter the database path (Press Enter to use default: {default_db_path}): "
+            colored(
+                f"Enter the database path (Press Enter to use default: {default_db_path}): ",
+                "magenta",
+            )
         )
         or default_db_path
     )
 
     if not os.path.exists(db_path):
-        print("Error: Database file not found.")
+        print(colored("❌ Error: Database file not found. ❌", "red"))
         return
 
     date_input = (
         input(
-            f"Enter the set date (YYYY-MM-DD) (Press Enter to use the current date: {today_date}): "
+            colored(
+                f"Enter the set date (YYYY-MM-DD) (Press Enter to use the current date: {today_date}): ",
+                "magenta",
+            )
         )
         or today_date
     )
@@ -88,7 +129,12 @@ def main():
     try:
         datetime.strptime(date_input, "%Y-%m-%d")
     except ValueError:
-        print("Invalid date format. Please enter a valid date (YYYY-MM-DD).")
+        print(
+            colored(
+                "❌ Invalid date format. Please enter a valid date (YYYY-MM-DD). ❌",
+                "red",
+            )
+        )
         return
 
     with sqlite3.connect(db_path) as conn:
@@ -96,12 +142,12 @@ def main():
 
         playlist_id = get_playlist_id(cursor, date_input)
         if not playlist_id:
-            print("No playlist found for this date.")
+            print(colored("❌ No playlist found for this date. ❌", "red"))
             return
 
         tracks = get_tracklist(cursor, playlist_id)
         if not tracks:
-            print("No tracks found for this playlist.")
+            print(colored("❌ No tracks found for this playlist. ❌", "red"))
             return
 
         export_tracklist(date_input, tracks)
