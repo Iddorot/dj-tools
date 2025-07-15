@@ -1,5 +1,6 @@
 import sqlite3
-import os, sys
+import os
+import sys
 import requests
 from datetime import datetime
 from termcolor import colored
@@ -22,12 +23,10 @@ DJ_ICON = """
 ⣇⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣀⣸
 """
 
-# MusicBrainz API URL
 MUSICBRAINZ_API_URL = "https://musicbrainz.org/ws/2/artist/"
 
 
 def search_artist_online(track_title):
-    """Search for an artist name using MusicBrainz API."""
     params = {"query": track_title, "fmt": "json", "limit": 1}
     try:
         response = requests.get(MUSICBRAINZ_API_URL + "?", params=params, timeout=5)
@@ -40,11 +39,20 @@ def search_artist_online(track_title):
     return None
 
 
-def get_playlist_id(cursor, date):
-    query = "SELECT id FROM playlists WHERE hidden = 2 AND name = ?"
-    cursor.execute(query, (date,))
-    result = cursor.fetchone()
-    return result[0] if result else None
+def get_playlists_by_date(cursor, date):
+    query = """
+    SELECT id, name, date_created FROM playlists
+    WHERE hidden = 2 AND date_created LIKE ?
+    ORDER BY date_created;
+    """
+    cursor.execute(query, (f"%{date}%",))
+    return cursor.fetchall()
+
+
+def get_track_count(cursor, playlist_id):
+    query = "SELECT COUNT(*) FROM PlaylistTracks WHERE playlist_id = ?"
+    cursor.execute(query, (playlist_id,))
+    return cursor.fetchone()[0]
 
 
 def get_tracklist(cursor, playlist_id):
@@ -60,8 +68,8 @@ def get_tracklist(cursor, playlist_id):
     return cursor.fetchall()
 
 
-def export_tracklist(date, tracks):
-    filename = f"tracklist_{date}.txt"
+def export_tracklist(date, tracks, playlist_id=None):
+    filename = f"tracklist_{date}.txt" if playlist_id is None else f"tracklist_{date}_playlist_{playlist_id}.txt"
     with open(filename, "w", encoding="utf-8") as f:
         f.write("Tracklist:\n")
         for artist, title in tracks:
@@ -78,11 +86,10 @@ def export_tracklist(date, tracks):
                 else title.title().replace("_", " ")
             )
             f.write(f"{artist} - {title}\n")
-    print_wavy_text(f"🎶 Tracklist saved as {filename} 🎶")
+    print_wavy_text(f"🎶 Saved: {filename} 🎶")
 
 
 def print_wavy_text(text, delay=0.02):
-    """Prints text in wavy colors by cycling through a list of colors."""
     colors = ["red", "yellow", "green", "blue", "magenta", "cyan"]
     for i, char in enumerate(text):
         color = colors[i % len(colors)]
@@ -129,21 +136,42 @@ def main():
     try:
         datetime.strptime(date_input, "%Y-%m-%d")
     except ValueError:
-        print(
-            colored(
-                "❌ Invalid date format. Please enter a valid date (YYYY-MM-DD). ❌",
-                "red",
-            )
-        )
+        print(colored("❌ Invalid date format. Please enter YYYY-MM-DD. ❌", "red"))
         return
 
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
 
-        playlist_id = get_playlist_id(cursor, date_input)
-        if not playlist_id:
+        playlists = get_playlists_by_date(cursor, date_input)
+        if not playlists:
             print(colored("❌ No playlist found for this date. ❌", "red"))
             return
+
+        if len(playlists) > 1:
+            print(colored(f"\n📅 Multiple playlists found for {date_input}:\n", "cyan"))
+            for idx, (pid, name, created) in enumerate(playlists, 1):
+                track_count = get_track_count(cursor, pid)
+                print(f"{idx}. Playlist ID {pid} — {name} — Created: {created} — Tracks: {track_count}")
+
+            choice = input(colored("\nEnter playlist number to export or type 'all' to export all: ", "magenta")).strip().lower()
+            if choice == "all":
+                for pid, name, _ in playlists:
+                    tracks = get_tracklist(cursor, pid)
+                    if tracks:
+                        export_tracklist(date_input, tracks, playlist_id=pid)
+                    else:
+                        print(colored(f"⚠️  Playlist {pid} has no tracks.", "yellow"))
+                return
+            try:
+                choice = int(choice)
+                if not (1 <= choice <= len(playlists)):
+                    raise ValueError
+                playlist_id, _, _ = playlists[choice - 1]
+            except ValueError:
+                print(colored("❌ Invalid selection. ❌", "red"))
+                return
+        else:
+            playlist_id, _, _ = playlists[0]
 
         tracks = get_tracklist(cursor, playlist_id)
         if not tracks:
