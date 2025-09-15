@@ -1,10 +1,8 @@
-Serato Crate Export Script
-==========================
+# Serato Crate Export Script
 
-This script automates exporting selected Serato crates to a USB drive using `serato_tools` and the `serato_usb_export` CLI.
+This script exports selected Serato crates to a USB drive using `serato_tools` and the `serato_usb_export` CLI, then copies the entire `_Serato_` folder to the same drive.
 
-Requirements
-------------
+## Requirements
 
 - Python 3.8+
 - serato-tools (for crate handling)
@@ -12,31 +10,30 @@ Requirements
 
 Install them with:
 
-    pip install serato-tools serato-usb-export
+```bash
+pip install serato-tools serato-usb-export
+```
 
-What the script does
---------------------
+## What the script does
 
 1. Reads all available `.crate` files from your Serato library
 2. Filters out unwanted crates (e.g. `*Recorded*`).
 3. Runs `serato_usb_export` with the selected crates, exporting them to your USB drive.
 
-Example command generated:
+## Usage
 
-    serato_usb_export --drive d --crate_matcher *Bassline* *Techno Acid* *Techno High* ... --root_crate="Ido's Music"
+1. Run the script:
 
-Usage
------
+```bash
+python export.py
+```
 
-1. Save the script as `export.py` (or whatever name you prefer).
-2. Plug in your USB drive (e.g. `D:`).
-3. Run the script from PowerShell or CMD:
+2. Enter the root crate name when prompted (required).
+3. Enter the USB drive letter when prompted (press Enter for `d`).
 
-    python export.py
+The script prints the command it runs and reports when the `_Serato_` folder has been copied.
 
-By default:
-- USB drive is `d`
-- Root crate is `"Ido's Music"`
+## Notes
 
 
 Notes
