@@ -6,6 +6,7 @@ from pathlib import Path
 from contextlib import redirect_stdout
 from serato_tools.crate import Crate
 
+
 def get_crate_paths():
     buf = io.StringIO()
     with redirect_stdout(buf):
@@ -14,6 +15,7 @@ def get_crate_paths():
     if not out:
         return []
     return [line.strip() for line in out.splitlines() if line.strip()]
+
 
 def format_crates():
     formatted = []
@@ -26,57 +28,49 @@ def format_crates():
     # filter out Recorded
     return [c for c in formatted if c.lower() != "*recorded*"]
 
+
 def run_export(drive, root_crate):
     crates = format_crates()
 
-    cmd = [
-        "serato_usb_export",
-        "--drive", drive,
-        "--crate_matcher",
-    ] + crates + [f'--root_crate={root_crate}']
+    # Build the command arguments (no quotes in actual args)
+    cmd = (
+        [
+            "serato_usb_export",
+            "--drive",
+            drive,
+            "--crate_matcher",
+        ]
+        + crates
+        + [f"--root_crate={root_crate}"]
+    )
 
+    # Print a shell-like representation with root_crate wrapped in quotes
     print("\nRunning command:")
-    print(" ".join(cmd), "\n")
+    display_cmd = (
+        [
+            "serato_usb_export",
+            "--drive",
+            drive,
+            "--crate_matcher",
+        ]
+        + crates
+        + [f'--root_crate="{root_crate}"']
+    )
+    print(" ".join(display_cmd), "\n")
 
+    # Execute the command
     subprocess.run(cmd, check=True)
 
-def copy_serato_folder(drive):
-    # Build C:\Users\[Your Username]\Music\_Serato_ explicitly
-    username = os.environ.get("USERNAME") or Path.home().name
-    serato_folder = Path(f"C:/Users/{username}/Music/_Serato_")
-
-    if not serato_folder.exists():
-        print(f"❌ Could not find Serato folder at {serato_folder}")
-        return
-
-    # Validate USB root
-    usb_root = Path(f"{drive.upper()}:\\")
-    if not usb_root.exists():
-        print(f"❌ Drive {usb_root} not found. Check the letter and try again.")
-        return
-
-    dest = usb_root / "_Serato_"
-    print(f"Copying {serato_folder} → {dest} ...")
-
-    # Replace existing copy on the USB
-    if dest.exists():
-        shutil.rmtree(dest)
-
-    shutil.copytree(serato_folder, dest)
-    print("✅ Serato folder copied successfully.")
 
 if __name__ == "__main__":
-    # Root crate name is REQUIRED
-    root_crate = input("What is the root crate name? (required): ").strip()
-    if not root_crate:
-        print("❌ Root crate name is required. Exiting.")
-        raise SystemExit(1)
+    # Root crate name is REQUIRED; keep prompting until provided
+    while True:
+        root_crate = input("What is the root crate name? (required): ").strip()
+        if root_crate:
+            break
+        print("Please enter a non-empty root crate name.")
 
     # USB drive with default
     drive = input("Where is your USB drive? (default: d): ").strip() or "d"
 
-    # 1) Export crates to USB
     run_export(drive=drive, root_crate=root_crate)
-
-    # 2) Copy _Serato_ folder to USB
-    copy_serato_folder(drive)

@@ -17,10 +17,9 @@ Install them with:
 What the script does
 --------------------
 
-1. Reads all available `.crate` files from your Serato library (`Crate.list_dir()`).
-2. Formats crate names into `*Crate Name*` format expected by `serato_usb_export`.
-3. Filters out unwanted crates (e.g. `*Recorded*`).
-4. Runs `serato_usb_export` with the selected crates, exporting them to your USB drive.
+1. Reads all available `.crate` files from your Serato library
+2. Filters out unwanted crates (e.g. `*Recorded*`).
+3. Runs `serato_usb_export` with the selected crates, exporting them to your USB drive.
 
 Example command generated:
 
@@ -39,16 +38,6 @@ By default:
 - USB drive is `d`
 - Root crate is `"Ido's Music"`
 
-Customization
--------------
-
-You can change the defaults at the bottom of the script:
-
-    if __name__ == "__main__":
-        run_export(drive="e", root_crate="My USB Crate")
-
-- Change `drive="d"` to match your USB drive letter.
-- Change `root_crate="Ido's Music"` to your preferred root crate name.
 
 Notes
 -----

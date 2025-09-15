@@ -69,7 +69,11 @@ def get_tracklist(cursor, playlist_id):
 
 
 def export_tracklist(date, tracks, playlist_id=None):
-    filename = f"tracklist_{date}.txt" if playlist_id is None else f"tracklist_{date}_playlist_{playlist_id}.txt"
+    filename = (
+        f"tracklist_{date}.txt"
+        if playlist_id is None
+        else f"tracklist_{date}_playlist_{playlist_id}.txt"
+    )
     with open(filename, "w", encoding="utf-8") as f:
         f.write("Tracklist:\n")
         for artist, title in tracks:
@@ -151,9 +155,20 @@ def main():
             print(colored(f"\n📅 Multiple playlists found for {date_input}:\n", "cyan"))
             for idx, (pid, name, created) in enumerate(playlists, 1):
                 track_count = get_track_count(cursor, pid)
-                print(f"{idx}. Playlist ID {pid} — {name} — Created: {created} — Tracks: {track_count}")
+                print(
+                    f"{idx}. Playlist ID {pid} — {name} — Created: {created} — Tracks: {track_count}"
+                )
 
-            choice = input(colored("\nEnter playlist number to export or type 'all' to export all: ", "magenta")).strip().lower()
+            choice = (
+                input(
+                    colored(
+                        "\nEnter playlist number to export or type 'all' to export all: ",
+                        "magenta",
+                    )
+                )
+                .strip()
+                .lower()
+            )
             if choice == "all":
                 for pid, name, _ in playlists:
                     tracks = get_tracklist(cursor, pid)
