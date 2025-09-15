@@ -1,6 +1,6 @@
 # Serato Crate Export Script
 
-This script exports selected Serato crates to a USB drive using `serato_tools` and the `serato_usb_export` CLI, then copies the entire `_Serato_` folder to the same drive.
+This script exports selected Serato crates to a USB drive using `serato_tools` and the `serato_usb_export` CLI.
 
 ## Requirements
 
