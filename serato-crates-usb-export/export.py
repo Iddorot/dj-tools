@@ -1,76 +1,66 @@
-import os
 import io
-import shutil
+import string
 import subprocess
-from pathlib import Path
 from contextlib import redirect_stdout
+from pathlib import Path
+
 from serato_tools.crate import Crate
 
+from crate_picker import pick_crates
 
-def get_crate_paths():
+EXCLUDED_CRATES = {"recorded"}  # lowercase for case-insensitive comparison
+
+
+def get_crate_paths() -> list[str]:
+    """Return crate names from the local Serato library, e.g. 'Bodiem666%%#UKG%%2-Step'."""
     buf = io.StringIO()
     with redirect_stdout(buf):
-        Crate.list_dir()  # prints paths, returns None
-    out = buf.getvalue().strip()
-    if not out:
-        return []
-    return [line.strip() for line in out.splitlines() if line.strip()]
+        Crate.list_dir()
+
+    paths = []
+    for line in buf.getvalue().splitlines():
+        if not (line := line.strip()):
+            continue
+        name = Path(line).stem
+        if name.lower() not in EXCLUDED_CRATES:
+            paths.append(name)
+    return paths
 
 
-def format_crates():
-    formatted = []
-    for path in get_crate_paths():
-        name = os.path.basename(path)
-        if name.endswith(".crate"):
-            name = name[:-6]
-        name = name.replace("%%", " ")
-        formatted.append(f"*{name}*")
-    # filter out Recorded
-    return [c for c in formatted if c.lower() != "*recorded*"]
+def to_matchers(crate_paths: list[str]) -> list[str]:
+    """A parent's matcher also matches its subcrates, since their names contain it."""
+    return [f"*{p.replace('%%', ' ')}*" for p in crate_paths]
 
 
-def run_export(drive, root_crate):
-    crates = format_crates()
+def validate_drive(letter: str) -> str:
+    """Uppercase and verify the drive exists, listing available drives if not."""
+    letter = letter.upper()
+    if not Path(f"{letter}:\\").exists():
+        available = [l for l in string.ascii_uppercase if Path(f"{l}:\\").exists()]
+        raise SystemExit(f"Drive {letter}: not found. Available drives: {', '.join(available)}")
+    return letter
 
-    # Build the command arguments (no quotes in actual args)
-    cmd = (
-        [
-            "serato_usb_export",
-            "--drive",
-            drive,
-            "--crate_matcher",
-        ]
-        + crates
-        + [f"--root_crate={root_crate}"]
-    )
 
-    # Print a shell-like representation with root_crate wrapped in quotes
+def run_export(drive: str, root_crate: str, crate_paths: list[str]) -> None:
+    cmd = ["serato_usb_export", "--drive", drive, "--crate_matcher", *to_matchers(crate_paths),
+           f"--root_crate={root_crate}"]
+
     print("\nRunning command:")
-    display_cmd = (
-        [
-            "serato_usb_export",
-            "--drive",
-            drive,
-            "--crate_matcher",
-        ]
-        + crates
-        + [f'--root_crate="{root_crate}"']
-    )
-    print(" ".join(display_cmd), "\n")
-
-    # Execute the command
+    print(" ".join(cmd), "\n")
     subprocess.run(cmd, check=True)
 
 
 if __name__ == "__main__":
-    # Root crate name is REQUIRED; keep prompting until provided
-    while True:
-        root_crate = input("What is the root crate name? (required): ").strip()
-        if root_crate:
-            break
+    selected = pick_crates(get_crate_paths())
+    if selected is None:
+        raise SystemExit("Cancelled.")
+    if not selected:
+        raise SystemExit("No crates selected.")
+
+    print("Exporting:", *(f"  {p.replace('%%', ' > ')}" for p in selected), sep="\n")
+
+    while not (root_crate := input("\nRoot crate name (required): ").strip()):
         print("Please enter a non-empty root crate name.")
 
-    # USB drive with default
-    drive = input("Where is your USB drive? (default: d): ").strip() or "d"
-
-    run_export(drive=drive, root_crate=root_crate)
+    drive = validate_drive(input("USB drive letter (default: D): ").strip() or "D")
+    run_export(drive=drive, root_crate=root_crate, crate_paths=selected)

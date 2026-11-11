@@ -1,0 +1,30 @@
+itignore · GITIGNORE
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+ 
+# Virtual environments
+.venv/
+venv/
+env/
+ 
+# Environment / secrets
+.env
+ 
+# Editors
+.vscode/
+.idea/
+ 
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ 
+# Serato library copies (never commit music or crates)
+_Serato_/
+*.crate
+ 
